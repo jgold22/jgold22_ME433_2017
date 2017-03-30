@@ -2,7 +2,7 @@
 #include<sys/attribs.h>  // __ISR macro
 
 // DEVCFG0
-#pragma config DEBUG = 1x // no debugging?
+#pragma config DEBUG = 1 // no debugging
 #pragma config JTAGEN = 0 // no jtag
 #pragma config ICESEL = 11 // use PGED1 and PGEC1
 #pragma config PWP = 111111111 // no write protect
@@ -16,7 +16,7 @@
 #pragma config POSCMOD = 10 // high speed crystal mode?
 #pragma config OSCIOFNC = 1 // disable secondary osc
 #pragma config FPBDIV = 00 // divide sysclk freq by 1 for peripheral bus clock
-#pragma config FCKSM = 1x // do not enable clock switch
+#pragma config FCKSM = 1 // do not enable clock switch
 #pragma config WDTPS = 10100 // use slowest wdt?
 #pragma config WINDIS = 1 // wdt no window mode
 #pragma config FWDTEN = 0 // wdt disabled
@@ -52,13 +52,25 @@ int main() {
 
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
-
-    // do your TRIS and LAT commands here
+    
+    TRISBbits.TRISB4 =1;       //set pin B4 as input
+    TRISAbits.TRISA4 =0;       //set pin A4 as output
+    LATAbits.LATA4 = 0;        //turn on LED
 
     __builtin_enable_interrupts();
 
     while(1) {
-	    // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
-		  // remember the core timer runs at half the sysclk
+	    
+        
+        // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
+        _CP0_SET_COUNT(0);              //reset core timer
+        
+        // wait 0.5 ms
+        while (_CP0_GET_COUNT()<12){  //core timer runs at half sysclk (24MHz)
+            ;
+        }
+        
+         LATAINV=0b10000;
+         
     }
 }
