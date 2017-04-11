@@ -1,6 +1,7 @@
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
 
+#define DELAYTIME 12000 // Core timer=sysclk/2=24MHz to 1KHz 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
 #pragma config JTAGEN = OFF // no jtag
@@ -58,19 +59,25 @@ int main() {
     LATAbits.LATA4 = 0;        //turn on LED
 
     __builtin_enable_interrupts();
-
+    //LATAINV=0b10000;
     while(1) {
 	    
         
         // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
-        _CP0_SET_COUNT(0);              //reset core timer
+                     
         
         // wait 0.5 ms
-        while (_CP0_GET_COUNT()<12){  //core timer runs at half sysclk (24MHz)
-            ;
+        if (_CP0_GET_COUNT()> DELAYTIME){   //core timer runs at half sysclk (24MHz)
+            LATAINV=0b10000;                //
+            _CP0_SET_COUNT(0);              //reset core timer
         }
         
-         LATAINV=0b10000;
-         
+        while (RCONbits.EXTR==0){
+        ;
+        }
+        
     }
+         
+         
+    
 }
