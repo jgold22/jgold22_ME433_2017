@@ -41,7 +41,7 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
-void initSPI(void);
+void initSPI1(void);
 char SPI1_IO(unsigned char);
 void setVoltage(unsigned char, unsigned char);
 
@@ -70,21 +70,22 @@ int main() {
 
     initSPI1();                 // Initialize SPI1
     
-    unsigned char sinwave[100];
-    unsigned char ramp[100];
-    float i;
+    int sinwave[100];
+    int ramp[100];
+    int i;
     
-    for (i==0;i<100;i++){
-        sinwave[i]=255/2+255/2*sin((2*3.14*i)/100);
-        ramp[i]=i*255/100;
+    for (i=0;i<100;i++){
+        sinwave[i]=(float) 255/2+255/2*sin((2*3.14*i)/100);
+        ramp[i]=(float) i*255/100;
     }
     
-    for (i==0;i<100;i++){
-       setVoltage(1, sinwave[i]);
-       setVoltage(0, ramp[i]);
-    }
     
-
+    while (1){    
+        for (i=0;i<100;i++){
+            setVoltage(1, (unsigned char) sinwave[i]);
+            setVoltage(0, (unsigned char) ramp[i]);
+        }
+    }
 }
 
 
@@ -109,7 +110,7 @@ SDI1Rbits.SDI1R=0b0100;          // Set SDI1 to B8
   SPI1CONbits.ON = 1;       // turn on spi 1
 }
 
-char SPI1_IO(char write){
+char SPI1_IO(unsigned char write){
     SPI1BUF=write;
     while (!SPI1STATbits.SPIRBF){;} // wait to receive the byte
     return SPI1BUF;
