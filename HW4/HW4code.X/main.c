@@ -4,7 +4,7 @@
 //#include "NU32.h"       // constants, funcs for startup and UART
 
 #define DELAYTIME 12000 // Core timer=sysclk/2=24MHz to 1KHz 
-#define CS LATBbits.LATB15       // chip select pin
+#define CS LATBbits.LATB7       // chip select pin
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -64,50 +64,71 @@ int main() {
     TRISBbits.TRISB4 =1;       //set pin B4 as input
     TRISAbits.TRISA4 =0;       //set pin A4 as output
     LATAbits.LATA4 = 0;        //turn on LED
-
+    
+    initSPI1();                 // Initialize SPI1
+    
     __builtin_enable_interrupts();
     //LATAINV=0b10000;
 
-    initSPI1();                 // Initialize SPI1
+
+    LATAINV=0b10000;   
     
-    int sinwave[100];
-    int ramp[100];
+    unsigned int sinwave[100];
+    unsigned int ramp[100];
+    double temp;
     int i;
     
     for (i=0;i<100;i++){
-        sinwave[i]=(float) 255/2+255/2*sin((2*3.14*i)/100);
-        ramp[i]=(float) i*255/100;
+        temp=255/2+255/2*sin((2*3.14*i)/100);
+        sinwave[i]=temp;                // implicit typecast to int
+        temp= i*255/100;
+        ramp[i]=temp;
     }
     
     
     while (1){    
         for (i=0;i<100;i++){
-            setVoltage(1, (unsigned char) sinwave[i]);
-            setVoltage(0, (unsigned char) ramp[i]);
+            while(_CP0_GET_COUNT() < 40000000/2/1000){;}
+            
+            setVoltage(1,sinwave[i]);
+            setVoltage(0,ramp[i]);
+            
+            _CP0_SET_COUNT(0);
+                
         }
     }
+    
+    return 0;
 }
 
 
 void initSPI1(void){
 // Assign SPI1 pins
 //RPB15Rbits.RPB15R=0b0010;      // Set B15 to SS1
-TRISBbits.TRISB15 =0;             // Set CS to B15
+TRISBbits.TRISB7 =0;             // Set CS to B7
 CS=1;
-RPB13Rbits.RPB13R=0b0011;        // Set SD01 to B13
-//RPB14Rbits.RPB14R=0b; ??
-SDI1Rbits.SDI1R=0b0100;          // Set SDI1 to B8
+RPA1Rbits.RPA1R=0b0011;        // Set SD01 to A1
             
 // setup SPI1
   SPI1CON = 0;              // turn off the spi module and reset it
   SPI1BUF;                  // clear the rx buffer by reading from it
-  SPI1BRG = 0x3;            // baud rate to 10 MHz [SPI4BRG = (80000000/(2*desired))-1]
+  SPI1BRG = 0x1000;            // baud rate to 10 MHz [SPI4BRG = (80000000/(2*desired))-1]
   SPI1STATbits.SPIROV = 0;  // clear the overflow bit
 //  SPI1CONbits.MODE16=1;     // use 16 bit mode??
 //  SPI1CONbits.MODE32=0;
   SPI1CONbits.CKE = 1;      // data changes when clock goes from hi to lo (since CKP is 0)
   SPI1CONbits.MSTEN = 1;    // master operation
   SPI1CONbits.ON = 1;       // turn on spi 1
+  
+//  // send a ram set status command.
+//CS = 0;                   // enable the ram
+//SPI1_IO(0x01);             // ram write status
+//SPI1_IO(0x41);             // sequential mode (mode = 0b01), hold disabled (hold = 0)
+//CS = 1;                   // finish the command
+
+
+//RPB14Rbits.RPB14R=0b;
+//SDI1Rbits.SDI1R=0b0100;          // Set SDI1 to B8
 }
 
 char SPI1_IO(unsigned char write){
@@ -145,7 +166,7 @@ void setVoltage(unsigned char channel, unsigned char voltage){
   
     
     CS=0;                   // Enable chip select
-    SPI1_IO(output[1]);     // ??
+    SPI1_IO(output[1]);     
     SPI1_IO(output[2]);
     CS=1;                   // Disable chip select 
 }
