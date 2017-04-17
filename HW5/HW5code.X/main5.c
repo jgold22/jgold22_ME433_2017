@@ -1,10 +1,10 @@
-#include<xc.h>           // processor SFR definitions
-#include<sys/attribs.h>  // __ISR macro
-//#include "i2c_slave.h"
+#include <xc.h>           // processor SFR definitions
+#include <sys/attribs.h>  // __ISR macro
 #include "i2c_master_noint.h"
 
 //#define DELAYTIME 12000 // Core timer=sysclk/2=24MHz to 1KHz
 #define SLAVE_ADDR 0b0100000 // A0-A2 pins are low
+
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
 #pragma config JTAGEN = OFF // no jtag
@@ -46,11 +46,6 @@ char getExpander(void);
 
 
 int main() {
-    char buf[100] = {};                       // buffer for sending messages to the user
-    unsigned char master_write0 = 0xCD;       // first byte that master writes
-    unsigned char master_write1 = 0x91;       // second byte that master writes
-    unsigned char master_read0  = 0x00;       // first received byte
-    unsigned char master_read1  = 0x00;       // second received byte
     
      Startup();
 
@@ -85,13 +80,22 @@ int main() {
     
     initExpander(void);
     
+    char pin_val;
+    
     while (1){
-        if 
-    setExpander(1,0);           // set GP0 high
+    
+        pin_val=getExpander;                    // read value of pins
+        
+        if ((pin_val & 0b01000000)== 0){        // pin 7 is low (bit 7 is 0)
+            setExpander(0,0);                   // set GP0 low
+        }
+        else if ((pin_val & 0b01000000)== 1){   // pin 7 is high (bit 7 is 1)     
+            setExpander(1,0);                   // set GP0 high
+        }
     
     }
 
-
+    return 0;
 }
 
 void initExpander(void){
