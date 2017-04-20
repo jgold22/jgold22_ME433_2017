@@ -69,9 +69,8 @@ int main() {
     
     __builtin_enable_interrupts();
     //LATAINV=0b10000;
-
-
-    LATAINV=0b10000;   
+  
+        LATAINV=0b10000;   
     
     unsigned int sinwave[100];
     unsigned int ramp[100];

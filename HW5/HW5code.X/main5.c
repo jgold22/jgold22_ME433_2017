@@ -1,5 +1,5 @@
-#include <xc.h>           // processor SFR definitions
-#include <sys/attribs.h>  // __ISR macro
+#include<xc.h>           // processor SFR definitions
+#include<sys/attribs.h>  // __ISR macro
 #include "i2c_master_noint.h"
 
 //#define DELAYTIME 12000 // Core timer=sysclk/2=24MHz to 1KHz
@@ -41,13 +41,13 @@
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
 void initExpander(void);
-void setExpander(char pin, char level);
-char getExpander(void);
+void setExpander(unsigned char pin, unsigned char level);
+unsigned char getExpander(void);
 
 
 int main() {
     
-     Startup();
+     //Startup();
 
     __builtin_disable_interrupts();
 
@@ -68,28 +68,31 @@ int main() {
     LATAbits.LATA4 = 0;        //turn on LED
     
     //i2c_slave_setup(SLAVE_ADDR);              // init I2C5, which we use as a slave 
-                                            //  (comment out if slave is on another pic)
-    i2c_master_setup();                       // init I2C2, which we use as a master
+                                                 //  (comment out if slave is on another pic)
+    i2c_master_setup();                              // init I2C2, which we use as a master
 
     __builtin_enable_interrupts();
-    //LATAINV=0b10000;
+    
+    LATAINV=0b10000;
     
     // Turn Off Analog
     ANSELBbits.ANSB2=0;         // pin B2 (SDA2)
     ANSELBbits.ANSB3=0;         // pin B3 (SCL2)
     
-    initExpander(void);
+    initExpander();
     
-    char pin_val;
+    unsigned char pin_val;
+    
+    //i2c_master_start();                     // Begin the start sequence
     
     while (1){
     
-        pin_val=getExpander;                    // read value of pins
+        pin_val=getExpander();                    // read value of pins
         
-        if ((pin_val & 0b01000000)== 0){        // pin 7 is low (bit 7 is 0)
+        if ((pin_val & 0b10000000)== 0){        // pin 7 is low (bit 7 is 0)
             setExpander(0,0);                   // set GP0 low
         }
-        else if ((pin_val & 0b01000000)== 1){   // pin 7 is high (bit 7 is 1)     
+        else if ((pin_val & 0b10000000)== 1){   // pin 7 is high (bit 7 is 1)     
             setExpander(1,0);                   // set GP0 high
         }
     
@@ -106,28 +109,28 @@ void initExpander(void){
     i2c_master_send(0x00);                  // write to IODIR register       
     i2c_master_send(0b11110000);            // set pins to input/output
     
-    i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
+    //i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
     i2c_master_stop();                      // send STOP:  end transmission, give up bus
 }
 
-void setExpander(char level, char pin){
+void setExpander(unsigned char level, unsigned char pin){
      // Set pins as high or lows (0 low, 1 high)
     
     int i;
-    char set,temp;
+    unsigned char set,temp;
     temp=1;
-    for(i=0,i<8,i++){
+    for(i=0;i<8;i++){
         if (i==pin){
             set=temp<<i;
         }
     }
     
     //read current pin values
-    char pin_val;
+    unsigned char pin_val;
     i2c_master_start();                     // Begin the start sequence
     i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
                                             // which clears bit 0, indicating a write
-    i2c_master_send(0x0A);
+    i2c_master_send(0x09);                  // read from GPIO
     i2c_master_restart();
     i2c_master_send(SLAVE_ADDR<< 1|1);
     pin_val=i2c_master_recv();
@@ -137,6 +140,7 @@ void setExpander(char level, char pin){
     if (level==0){
         set=set^pin_val;
     }
+    
     else{
         set=set|pin_val;
     }
@@ -145,14 +149,14 @@ void setExpander(char level, char pin){
     
     i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
                                             // which clears bit 0, indicating a write
-    i2c_master_send(0x0A);                  // write to IODIR register       
+    i2c_master_send(0x09);                  // write to GPIO register       
     i2c_master_send(set);                   // set pins to input/output
-    i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
+    //i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
     i2c_master_stop();                      // send STOP:  end transmission, give up bus
 }
 
-char getExpander(void){
-    char pin_val;
+unsigned char getExpander(void){
+    unsigned char pin_val;
     i2c_master_start();                     // Begin the start sequence
     i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
                                             // which clears bit 0, indicating a write
