@@ -89,42 +89,28 @@ int main() {
     unsigned short color=CYAN;
     int i=0;
     int x;          //temporary x value
-//    LCD_drawPixel(28,32,color);
-//    
-//    char test=0x23;
-//    display_character(test,28,32,color);
-    
-    char msg1[100];
-    sprintf(msg1,"Hello World!");
-
-    
+ 
+    int count;
+    char msg[100];
     x=x_val;
-    while(msg1[i]){      // write msg to LCD screen
-        display_character(msg1[i],x,y_val,color);
-        i++;
-        x=x+6;          // x position shifts one character?
-                        // y position stays the same
+    for (count=0;count<COUNTLENGTH+1;count++){
+        
+        sprintf(msg,"Hello World! %d",count);
+        
+        while(msg[i]){      // write msg to LCD screen
+            display_character(msg[i],x,y_val,color);
+            i++;
+            x=x+6;          // x position shifts one character?
+                            // y position stays the same
+        }
+        i=0;
+        x=x_val;
+        
+        progress_bar(14,y_val+20,count);
+        delay();
     }
-    
-//    int count=0;
-//    char msg[100];
-//    x=x_val;
-//    for (i=0;i<COUNTLENGTH+1;i++){
-//        sprintf(msg,"Hello World! %d",count);
-//        
-//        while(msg[i]){      // write msg to LCD screen
-//            display_character(msg[i],x,y_val,color);
-//            i++;
-//            x=x+6;          // x position shifts one character?
-//                             y position stays the same
-//        }
-//        
-//        progress_bar(14,y_val-10,count);
-//        delay();
-//        count++;
-//    }
    
-
+    
     return 0;
 }
 
@@ -133,16 +119,22 @@ void display_character (unsigned char c, unsigned char x, unsigned char y, unsig
     int i,j;
     row=c-0x20;
     
+    
     // check position to see if it fits?
     
     for (i=0;i<5;i++){                          // go through 5 chars of character
-        for (j=0; j<8;j++){                     // go through 8 bits of each char
-            if ((ASCII[row][i]>>j)&1==1){       // if bit is 1
-                LCD_drawPixel(x+i,y+j,color);   // draw color 
+        if(x+j<=128){
+            for (j=0; j<8;j++){                     // go through 8 bits of each char
+                if ((ASCII[row][i]>>j)&1==1){       // if bit is 1
+                    LCD_drawPixel(x+i,y+j,color);   // draw color 
+                }
+                else {                              // if bit is 0
+                    LCD_drawPixel(x+i,y+j,BACKGROUND);                           
+                }
             }
-            else {                              // if bit is 0
-                //LCD_drawPixel(x+i,y+j,MAGENTA);                              // don't draw color?
-            }
+        }
+        else if (x+j>128){
+            ;
         }
     }
     
@@ -155,7 +147,7 @@ void progress_bar (unsigned char start_x, unsigned char start_y, unsigned char l
     
     for (i=0;i<(length+1);i++){                                 // go through length
         for (j=0; j<(width+1);j++){                             // go through width of bar
-            LCD_drawPixel(start_x+i,start_y+j,~BACKGROUND);     // draw color 
+            LCD_drawPixel(start_x+i,start_y+j,MAGENTA);     // draw color 
         }                                                
     }
     
