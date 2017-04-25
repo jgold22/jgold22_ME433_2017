@@ -4,7 +4,7 @@
 // I2C pins need pull-up resistors, 2k-10k
 
 #include <xc.h>
-//#include "i2c_master_noint.h"
+#include "ILI9163C.h"
 
 void i2c_master_setup(void) {
   I2C2BRG = 390;            // I2CBRG = [1/(2*Fsck) - PGD]*Pblck - 2 
@@ -48,4 +48,3 @@ void i2c_master_stop(void) {          // send a STOP:
   I2C2CONbits.PEN = 1;                // comm is complete and master relinquishes bus
   while(I2C2CONbits.PEN) { ; }        // wait for STOP to complete
 }
-

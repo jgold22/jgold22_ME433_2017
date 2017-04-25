@@ -89,6 +89,8 @@ int main() {
     unsigned short color=CYAN;
     int i=0;
     int x;          //temporary x value
+    
+    // Increment progress bar from 1 to 100 at 5Hz
  
     int count;
     char msg[100];
@@ -100,7 +102,7 @@ int main() {
         while(msg[i]){      // write msg to LCD screen
             display_character(msg[i],x,y_val,color);
             i++;
-            x=x+6;          // x position shifts one character?
+            x=x+6;          // x position shifts one character+1
                             // y position stays the same
         }
         i=0;
@@ -110,6 +112,26 @@ int main() {
         delay();
     }
    
+    // Show how long it takes to fill one row with characters
+    LCD_clearScreen(BACKGROUND);
+    int x_pos;
+    int time_val=0;
+    
+    sprintf(msg,"Time:")       
+    while(msg[i]){      // write msg to LCD screen
+        display_character(msg[i],x,y_val,color);
+        i++;
+        x=x+6;          // x position shifts one character+1
+                        // y position stays the same
+    }
+    
+    _CP0_SET_COUNT(0);
+    
+    for (x_pos=0;x_pos<129;x_pos++){
+        sprintf(msg,"%d",time_val);
+        progress_bar(x_pos,y_val+20,x_pos+1);
+        time_val=_CP0_GET_COUNT();
+    }
     
     return 0;
 }

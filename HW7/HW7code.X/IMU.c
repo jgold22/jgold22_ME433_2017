@@ -1,9 +1,11 @@
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
 #include "i2c_master_noint.h"
+#include "ILI9163C.h"
+#include <stdio.h>
 
-//#define DELAYTIME 12000 // Core timer=sysclk/2=24MHz to 1KHz
 #define SLAVE_ADDR 0b1101011
+#define DELAYTIME 4800000 // Core timer=sysclk/2=24MHz to 5Hz (0.2 sec)
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -40,9 +42,9 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
-void initExpander(void);
-void setExpander(unsigned char pin, unsigned char level);
-unsigned char getExpander(void);
+void initIMU(void);
+void I2C_read_multiple(unsigned char, unsigned char *, int);
+void delay(void);
 
 
 int main() {
@@ -69,7 +71,9 @@ int main() {
     
     //i2c_slave_setup(SLAVE_ADDR);              // init I2C5, which we use as a slave 
                                                 //  (comment out if slave is on another pic)
-    i2c_master_setup();                         // init I2C2, which we use as a master
+    //i2c_master_setup();                         // init I2C2, which we use as a master
+    SPI1_init();                                // Initialize SPI1
+    LCD_init();
 
     __builtin_enable_interrupts();
     
@@ -79,78 +83,104 @@ int main() {
     ANSELBbits.ANSB2=0;         // pin B2 (SDA2)
     ANSELBbits.ANSB3=0;         // pin B3 (SCL2)
     
-    initExpander();
+    //initIMU();                  // initialize IMU
+    LCD_clearScreen(BACKGROUND);    //set background color
     
+    unsigned char test=0;
+    i2c_master_start();                     // Begin the start sequence
+    i2c_master_send(SLAVE_ADDR << 1|0);     // send the slave address, left shifted by 1 (write)
+                                            // which clears bit 0, indicating a write
+    i2c_master_send(0x0F);                  // read from WHO_AM_I      
+    i2c_master_restart();
+    
+    i2c_master_send(SLAVE_ADDR<< 1|1);      // read from slave
+    test=i2c_master_recv();                 
+    
+    i2c_master_ack(1);                      // send NACK stop sending data
+    i2c_master_stop();
+    
+    char msg[100];
+    sprintf(msg,"hello");
+    
+    LCD_write(msg);
+    
+    
+//    while (1){
+//    // Read data from IMU
+//        unsigned char temp_data[14];
+//        I2C_read_multiple(0x20,temp_data,13);   // start at OUT_TEMP_L register and
+//                                                // read through OUTZ_H_XL
+//        signed short data[7];
+//        int i;
+//        for (i=0;i<14;i=i+2){
+//            data[i/2]=data[i]<<8|data[i+1];
+//        }
+//    
+//    // Draw bars on LCD    
+//        //unsigned char center[2]=[64,64]
+//        signed short length_x;
+//        signed short length_y;
+//        
+//        length_x=(float)data[4]/512;
+//        length_y=(float)data[5]/512;
+//        
+//        progress_bar_x(64,64,length_x);
+//        progress_bar_y(64,64,length_y);
+//        
+//        delay();                                // delay 5Hz
+//    }
     
     return 0;
 }
 
-void initExpander(void){
- // Set pins 4-7 as inputs and pins 0-3 as outputs
+void initIMU(void){
+    // Turn on Accelerometer
     i2c_master_start();                     // Begin the start sequence
-    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
+    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1 (write)
                                             // which clears bit 0, indicating a write
-    i2c_master_send(0x00);                  // write to IODIR register       
-    i2c_master_send(0b11110000);            // set pins to input/output
+    i2c_master_send(0x10);                  // write to CTRL1_XL register       
+    i2c_master_send(0b10000010);            // sample rate 1.66kHz, 2g sensitivity, 100Hz filter
+ 
+    // Turn on Gyroscope
+    i2c_master_restart();
+    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1 (write)
+    
+    i2c_master_send(0x11);                  // write to CTRL2_G register       
+    i2c_master_send(0b10001000);            // sample rate 1.66kHz, 1000dps sensitivity
+    
+    // Enable multiple registers
+    i2c_master_restart();
+    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1 (write)
+    
+    i2c_master_send(0x12);                  // write to CTRL3_C register       
+    i2c_master_send(0b00000100);            // set IF_INC high
     
     //i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
     i2c_master_stop();                      // send STOP:  end transmission, give up bus
 }
 
-void setExpander(unsigned char level, unsigned char pin){
-     // Set pins as high or lows (0 low, 1 high)
+void I2C_read_multiple(unsigned char start_register, unsigned char * data, int length){
+    
+    i2c_master_start();                     // Begin the start sequence
+    i2c_master_send(SLAVE_ADDR << 1|0);     // send the slave address, left shifted by 1 (write)
+                                            // which clears bit 0, indicating a write
+    i2c_master_send(start_register);        // start read from input register      
+    i2c_master_restart();
     
     int i;
-    unsigned char set,temp;
-    temp=1;
-    for(i=0;i<8;i++){
-        if (i==pin){
-            set=temp<<i;
-        }
+    for (i=0;i<length+1;i++){
+        i2c_master_send(SLAVE_ADDR<< 1|1);  // read from slave
+        data[i]=i2c_master_recv();        // store info in data array?
+        //*(data+i)=i2c_master_recv();
+        i2c_master_ack(0);                  // send ACK (0): master wants another byte!
     }
     
-    //read current pin values
-    unsigned char pin_val;
-    i2c_master_start();                     // Begin the start sequence
-    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
-                                            // which clears bit 0, indicating a write
-    i2c_master_send(0x09);                  // read from GPIO
-    i2c_master_restart();
-    i2c_master_send(SLAVE_ADDR<< 1|1);
-    pin_val=i2c_master_recv();
-    i2c_master_ack(1);
+    i2c_master_ack(1);                      // send NACK stop sending data
     i2c_master_stop();
     
-    if (level==0){
-        set=set^pin_val;
-    }
-    
-    else{
-        set=set|pin_val;
-    }
-    
-    i2c_master_start();                     // Begin the start sequence
-    
-    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
-                                            // which clears bit 0, indicating a write
-    i2c_master_send(0x09);                  // write to GPIO register       
-    i2c_master_send(set);                   // set pins to input/output
-    //i2c_master_ack(1);                      // send NACK (1):  master needs no more bytes
-    i2c_master_stop();                      // send STOP:  end transmission, give up bus
 }
 
-unsigned char getExpander(void){
-    unsigned char pin_val;
-    i2c_master_start();                     // Begin the start sequence
-    i2c_master_send(SLAVE_ADDR << 1);       // send the slave address, left shifted by 1, 
-                                            // which clears bit 0, indicating a write
-    i2c_master_send(0x09);
-    i2c_master_restart();
-    i2c_master_send(SLAVE_ADDR<< 1|1);
-    pin_val=i2c_master_recv();
-    i2c_master_ack(1);
-    i2c_master_stop();
-    
-    return pin_val;
-    
+void delay(void){
+    _CP0_SET_COUNT(0);
+    while(_CP0_GET_COUNT()<DELAYTIME){;}
 }
