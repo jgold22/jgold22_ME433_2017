@@ -245,11 +245,11 @@ void LCD_write (unsigned char * msg){
     unsigned short x_val=28;
     unsigned short y_val=32;
     unsigned short color=CYAN;
-    int i; 
+    int i=0; 
     while(msg[i]){      // write msg to LCD screen
             display_character(msg[i],x_val,y_val,color);
             i++;
             x_val=x_val+6;          // x position shifts one character+1
-                                        // y position stays the same
+                                    // y position stays the same
         }
 }
