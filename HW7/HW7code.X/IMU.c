@@ -1,5 +1,5 @@
-#include<xc.h>           // processor SFR definitions
-#include<sys/attribs.h>  // __ISR macro
+#include <xc.h>           // processor SFR definitions
+#include <sys/attribs.h>  // __ISR macro
 #include "i2c_master_noint.h"
 #include "ILI9163C.h"
 #include <stdio.h>

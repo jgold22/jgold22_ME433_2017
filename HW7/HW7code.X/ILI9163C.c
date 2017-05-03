@@ -15,6 +15,7 @@
 
 #include <xc.h>
 #include "ILI9163C.h"
+#include <math.h> 
 
 void SPI1_init() {
 	SDI1Rbits.SDI1R = 0b0100; // B8 is SDI1
@@ -189,7 +190,8 @@ void LCD_clearScreen(unsigned short color) {
 			LCD_data16(color);
 		}
 }
-void display_character (unsigned char c, unsigned char x, unsigned char y, unsigned char color){
+
+void display_character (unsigned char c, unsigned short x, unsigned short y, unsigned short color){
     char row;
     int i,j;
     row=c-0x20;
