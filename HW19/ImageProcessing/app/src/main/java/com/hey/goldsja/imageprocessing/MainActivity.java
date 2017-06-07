@@ -25,6 +25,10 @@ import static android.graphics.Color.green;
 import static android.graphics.Color.red;
 import static android.graphics.Color.rgb;
 
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
+
 public class MainActivity extends Activity implements TextureView.SurfaceTextureListener {
     private Camera mCamera;
     private TextureView mTextureView;
@@ -34,7 +38,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private Canvas canvas = new Canvas(bmp);
     private Paint paint1 = new Paint();
     private TextView mTextView;
+
+    SeekBar myControl;
+    TextView myTextView;
     int Rm;
+    int T;
+    int T2;
     int COM;
 
     static long prevtime = 0; // for FPS calculation
@@ -45,6 +54,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // keeps the screen from turning off
 
         mTextView = (TextView) findViewById(R.id.cameraStatus);
+
+        myControl = (SeekBar) findViewById(R.id.seek1);
+
+        myTextView = (TextView) findViewById(R.id.textView01);
+        myTextView.setText("Enter whatever you Like!");
+
+        setMyControlListener();
 
         // see if the app has permission to use the camera
         ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
@@ -64,6 +80,29 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             mTextView.setText("no camera permissions");
         }
 
+    }
+    // seekbar
+    private void setMyControlListener() {
+        myControl.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+            int progressChanged = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                myTextView.setText("R: "+progress);
+                T2=progress;
+                //T=progress
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
@@ -101,23 +140,33 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         final Canvas c = mSurfaceHolder.lockCanvas();
         if (c != null) {
             //int thresh = 5; // comparison value
-            Rm=5;
+            //Rm=43;
             int R=Rm;
-            int T=1;
+            T=75;
+            int thresh=5;
+            //int T2=5;
             int[] pixels = new int[bmp.getWidth()]; // pixels[] is the RGBA data
 
-            int sum_mr = 0; // the sum of the mass times the radius
-            int sum_m = 0; // the sum of the masses
+            //int sum_mr = 0; // the sum of the mass times the radius
+            //int sum_m = 0; // the sum of the masses
 
 
-            for (int startY = 0; startY <bmp.getHeight(); startY = startY + 3) {
+            for (int startY = 0; startY <bmp.getHeight(); startY = startY + 5) {
                 //int startY = 200; // which row in the bitmap to analyze to read
                 bmp.getPixels(pixels, 0, bmp.getWidth(), 0, startY, bmp.getWidth(), 1);
                 //int j;
 
+                int sum_mr = 0; // the sum of the mass times the radius
+                int sum_m = 0; // the sum of the masses
+
                 // in the row, see if there is more green than red
                 for (int i = 0; i < bmp.getWidth(); i++) {
-                    if (((green(pixels[i]) - red(pixels[i])) > -R) && ((green(pixels[i]) - red(pixels[i])) < R) && (green(pixels[i]) > T)) {
+
+
+                    if (//((blue(pixels[i]) - red(pixels[i])) > -R)&&((blue(pixels[i]) - red(pixels[i])) < R)&&(green(pixels[i]) < 100) && (red(pixels[i]) > T)){
+                            (((red(pixels[i]) - green(pixels[i])) > -R) && ((red(pixels[i]) - green(pixels[i])) < R) && (green(pixels[i]) > T) &&(green(pixels[i]))<T2) ){
+                        //&& ((blue(pixels[i])- green(pixels[i])> -R)) && ((blue(pixels[i]) - green(pixels[i])) < R) && (blue(pixels[i]) > T)
+                           // )){
                         pixels[i] = rgb(1, 1, 1); // set the pixel to almost 100% black
                     }
 
@@ -136,6 +185,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
                 // update the row
                 bmp.setPixels(pixels, 0, bmp.getWidth(), 0, startY, bmp.getWidth(), 1);
+
             }
 
         }
