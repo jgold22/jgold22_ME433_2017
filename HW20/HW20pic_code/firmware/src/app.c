@@ -68,7 +68,7 @@ int rxPos = 0; // how much data has been stored
 int gotRx = 0; // the flag
 int rxVal = 0; // a place to store the int that was received
 
-#define MAX_DUTY 500
+#define MAX_DUTY 550
 #define kp 2
 
 // *****************************************************************************
