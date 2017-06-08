@@ -58,6 +58,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     SeekBar myControl;
     TextView myTextView;
 
+    SeekBar myControl2;
+    TextView myTextView4;
+
     Button button;
     TextView myTextView2;
     ScrollView myScrollView;
@@ -71,8 +74,10 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private Canvas canvas = new Canvas(bmp);
     private Paint paint1 = new Paint();
     private TextView mTextView;
+
     int Rm;
-    int COM;
+    int COM[]=new int[10];
+    int T;
 
     static long prevtime = 0; // for FPS calculation
 
@@ -110,26 +115,21 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         }
 
         myControl = (SeekBar) findViewById(R.id.seek1);
-
         myTextView = (TextView) findViewById(R.id.textView01);
         myTextView.setText("Slide the bar");
         setMyControlListener();
 
+        myControl2= (SeekBar) findViewById(R.id.seek2);
+        myTextView4 = (TextView) findViewById(R.id.textView02);
+        setMyControlListener2();
+
+
+
         myTextView2 = (TextView) findViewById(R.id.textView02);
         myScrollView = (ScrollView) findViewById(R.id.ScrollView01);
         myTextView3 = (TextView) findViewById(R.id.textView03);
-        button = (Button) findViewById(R.id.button1);
 
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //myTextView2.setText("value on click is "+myControl.getProgress());
-                String sendString = String.valueOf(myControl.getProgress()) + '\n';
-                try {
-                    sPort.write(sendString.getBytes(), 10); // 10 is the timeout
-                } catch (IOException e) { }
-            }
-        });
+
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
 
@@ -143,7 +143,8 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 progressChanged = progress;
-                myTextView.setText("The value is: "+progress);
+                myTextView.setText("T: "+progress);
+                T=progress;
             }
 
             @Override
@@ -156,6 +157,29 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             }
         });
     }
+
+    private void setMyControlListener2() {
+        myControl2.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+            int progressChanged = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                myTextView4.setText("R: "+progress);
+                Rm=progress;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+    }
+
     private final SerialInputOutputManager.Listener mListener =
             new SerialInputOutputManager.Listener() {
                 @Override
@@ -301,46 +325,71 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         final Canvas c = mSurfaceHolder.lockCanvas();
         if (c != null) {
             //int thresh = 5; // comparison value
-            Rm=10;
+            //Rm=10;
             int R=Rm;
-            int T=1;
+            //int T=1;
             int[] pixels = new int[bmp.getWidth()]; // pixels[] is the RGBA data
 
             int sum_mr = 0; // the sum of the mass times the radius
             int sum_m = 0; // the sum of the masses
+            int j=0;
 
 
-            for (int startY = 200; startY <250; startY = startY + 3) {
+            for (int startY = 200; startY <300; startY = startY + 10) {
                 //int startY = 200; // which row in the bitmap to analyze to read
                 bmp.getPixels(pixels, 0, bmp.getWidth(), 0, startY, bmp.getWidth(), 1);
                 //int j;
 
+
+
+                sum_mr=0;
+                sum_m=0;
+
                 // in the row, see if there is more red then green?
                 for (int i = 0; i < bmp.getWidth(); i++) {
-                    if (((green(pixels[i]) - red(pixels[i])) > -R) && ((green(pixels[i]) - red(pixels[i])) < R) && ((pixels[i]) > T)) {
+
+                    if (((red(pixels[i]) - green(pixels[i])) > -R) && ((red(pixels[i]) - green(pixels[i])) < R) && (red(pixels[i]) > T) ){
                         pixels[i] = rgb(1, 1, 1); // set the pixel to almost 100% black
+
+                        sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
+                        sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
                     }
 
-                    sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
-                    sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
                 }
 
                 if (sum_m > 5) {
-                    COM = sum_mr / sum_m;
+                    COM[j] = sum_mr / sum_m;
                 } else {
-                    COM = 0;
+                    COM[j] = 0;
                 }
 
                 int pos = startY;
-                canvas.drawCircle(COM, pos, 5, paint1); // x position, y position, diameter, color
+                canvas.drawCircle(COM [j], pos, 5, paint1); // x position, y position, diameter, color
+
+                j++;
 
                 // update the row
                 bmp.setPixels(pixels, 0, bmp.getWidth(), 0, startY, bmp.getWidth(), 1);
             }
 
         }
+
+            int com_av=0;
+
+            for (int i=0;i<10;i++){
+                com_av=com_av+COM [i];
+            }
+
+            com_av=com_av/10;
+
+            String sendString = String.valueOf(com_av) + '\n';
+            try {
+                sPort.write(sendString.getBytes(), 10); // 10 is the timeout
+            } catch (IOException e) { }
+
+
         // draw a circle at some position
-        int pos = 50;
+        int pos = com_av;
         canvas.drawCircle(pos, 240, 5, paint1); // x position, y position, diameter, color
 
         // write the pos as text

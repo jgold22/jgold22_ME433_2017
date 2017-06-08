@@ -41,6 +41,10 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
     SeekBar myControl;
     TextView myTextView;
+
+    SeekBar myControl2;
+    TextView myTextView2;
+
     int Rm;
     int T;
     int T2;
@@ -61,6 +65,11 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         myTextView.setText("Enter whatever you Like!");
 
         setMyControlListener();
+
+        myControl2 = (SeekBar) findViewById(R.id.seek2);
+        myTextView2 = (TextView) findViewById(R.id.textView02);
+
+        setMyControlListener2();
 
         // see if the app has permission to use the camera
         ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
@@ -89,9 +98,30 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                myTextView.setText("R: "+progress);
-                T2=progress;
-                //T=progress
+                myTextView.setText("T: "+progress);
+                T=progress;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+    }
+
+    private void setMyControlListener2() {
+        myControl2.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+            int progressChanged = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                myTextView2.setText("R: "+progress);
+                Rm=progress;
             }
 
             @Override
@@ -140,38 +170,35 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         final Canvas c = mSurfaceHolder.lockCanvas();
         if (c != null) {
             //int thresh = 5; // comparison value
-            //Rm=43;
+            //Rm=30;
             int R=Rm;
-            T=75;
-            int thresh=5;
-            //int T2=5;
+            //T=75;
+
             int[] pixels = new int[bmp.getWidth()]; // pixels[] is the RGBA data
 
-            //int sum_mr = 0; // the sum of the mass times the radius
-            //int sum_m = 0; // the sum of the masses
+            int sum_mr = 0; // the sum of the mass times the radius
+            int sum_m = 0; // the sum of the masses
 
 
-            for (int startY = 0; startY <bmp.getHeight(); startY = startY + 5) {
+            for (int startY = 0; startY <bmp.getHeight(); startY = startY + 10) {
                 //int startY = 200; // which row in the bitmap to analyze to read
                 bmp.getPixels(pixels, 0, bmp.getWidth(), 0, startY, bmp.getWidth(), 1);
                 //int j;
 
-                int sum_mr = 0; // the sum of the mass times the radius
-                int sum_m = 0; // the sum of the masses
+                sum_mr = 0; // the sum of the mass times the radius
+                sum_m = 0; // the sum of the masses
 
                 // in the row, see if there is more green than red
                 for (int i = 0; i < bmp.getWidth(); i++) {
 
 
-                    if (//((blue(pixels[i]) - red(pixels[i])) > -R)&&((blue(pixels[i]) - red(pixels[i])) < R)&&(green(pixels[i]) < 100) && (red(pixels[i]) > T)){
-                            (((red(pixels[i]) - green(pixels[i])) > -R) && ((red(pixels[i]) - green(pixels[i])) < R) && (green(pixels[i]) > T) &&(green(pixels[i]))<T2) ){
-                        //&& ((blue(pixels[i])- green(pixels[i])> -R)) && ((blue(pixels[i]) - green(pixels[i])) < R) && (blue(pixels[i]) > T)
-                           // )){
+                    if (((red(pixels[i]) - green(pixels[i])) > -R) && ((red(pixels[i]) - green(pixels[i])) < R) && (red(pixels[i]) > T) ){
                         pixels[i] = rgb(1, 1, 1); // set the pixel to almost 100% black
+                        sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
+                        sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
                     }
 
-                    sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
-                    sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
+
                 }
 
                 if (sum_m > 5) {
